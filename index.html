@@ -97,21 +97,26 @@
   .doc-head{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;border-top:2px solid #000;border-bottom:1px solid #000;padding:10px 0;margin-bottom:6px;}
   .doc-head .k{color:#444;font-size:12px;}
   .doc-head .v{font-weight:700;font-family:var(--mono);font-size:14px;}
-  .doc table{width:100%;border-collapse:collapse;margin-top:20px;border:none;}
+  .doc table{width:100%;border-collapse:collapse;margin-top:32px;border:none;}
   .doc th{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#333;text-align:left;border-bottom:1.5px solid #000;padding:5px 6px;background:none;}
   .doc td{padding:5px 6px;border-bottom:1px solid #ccc;font-size:12px;}
   .doc td.num,.doc th.num{text-align:right;}
   .copylabel{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:2px 0 4px;}
 
   @media print {
-    body * { visibility: hidden; }
-    #printArea, #printArea * { visibility: visible; }
-    #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
-    .print-copy { page-break-after: always; padding: 18px 24px; }
+    /* Remove everything from layout except the print overlay's document. */
+    .wrap, .palletbar, #reviewOverlay, #recallOverlay { display: none !important; }
+    #printOverlay {
+      display: block !important; position: static; background: none; padding: 0;
+      overflow: visible; inset: auto;
+    }
+    #printOverlay .modal { box-shadow: none; max-width: none; width: auto; border-radius: 0; }
+    #printOverlay .modal-head, #printOverlay .modal-foot { display: none !important; }
+    #printOverlay .modal-body { padding: 0; }
+    #printArea { width: 100%; }
+    .print-copy { page-break-after: always; padding: 24px 28px; }
     .print-copy:last-child { page-break-after: auto; }
-    .overlay { position: static; background: none; padding: 0; display: block; }
-    .modal { box-shadow: none; max-width: none; }
-    .modal-head, .modal-foot { display: none; }
+    @page { margin: 0; }
   }
 </style>
 </head>
@@ -124,7 +129,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <button class="btn ghost" id="recall-open">Recall PL#</button>
-      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.4</div></div>
+      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.5</div></div>
     </div>
   </header>
 
