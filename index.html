@@ -118,7 +118,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <button class="btn ghost" id="recall-open">Recall PL#</button>
-      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.0</div></div>
+      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.1</div></div>
     </div>
   </header>
 
@@ -143,8 +143,8 @@
     <table id="tbl" style="display:none">
       <thead><tr>
         <th class="chk"><input type="checkbox" id="chk-all" title="Select all"></th>
-        <th>Vendor</th><th>PO</th><th>Batch</th><th>Store</th>
-        <th class="num">Cases</th><th class="num">Age</th><th>Buyer Group</th>
+        <th>Vendor</th><th>RD Date</th><th>PO</th><th>Batch</th><th>Store</th>
+        <th class="num">Cases</th><th>Buyer Group</th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -195,6 +195,7 @@ let allRows = [], loaded = false, loadInFlight = false;
 const selected = new Map(); // key -> row
 function rowKey(r){ return r.PoNum+"|"+fmtDate(r.ReceiveDate)+"|"+r.SeqNum; }
 function fmtDate(d){ return (d||"").toString().slice(0,10); }
+function fmtMDY(d){ const s=fmtDate(d); if(!s) return ""; const p=s.split("-"); return p.length===3?`${p[1]}-${p[2]}-${p[0].slice(2)}`:s; }
 function rt(s){ return (s==null?"":String(s)).replace(/\s+$/,""); } // rtrim padded fields
 
 let dotsTimer=null;
@@ -269,11 +270,11 @@ function renderRows(rows){
     tr.innerHTML=
       `<td class="chk"><input type="checkbox" ${on?"checked":""}></td>`+
       `<td><div class="vendor">${rt(r.VendorName)||"\u2014"}</div><div class="vcode">${r.VendorCode||""}</div></td>`+
+      `<td class="mono">${fmtMDY(r.ReceiveDate)}</td>`+
       `<td class="mono">${r.PoNum}</td>`+
       `<td class="mono">${r.SeqNum}</td>`+
       `<td>${storeChip}</td>`+
       `<td class="num">${rt(r.CasesNote)}</td>`+
-      `<td class="num"><span class="age ${r.AgeDays>5?"old":""}">${r.AgeDays}d</span></td>`+
       `<td class="grp">${r.BuyerGroups||"\u2014"}</td>`;
     const toggle=()=>{
       if(selected.has(key)){ selected.delete(key); tr.classList.remove("sel"); tr.querySelector("input").checked=false; }
@@ -322,7 +323,7 @@ async function buildManifest(){
 
 function docHtml(header,lines){
   const rowsHtml=lines.map(l=>
-    `<tr><td>${rt(l.Vendor)||"\u2014"}</td><td class="mono">${fmtDate(l.RdDate)}</td>`+
+    `<tr><td>${rt(l.Vendor)||"\u2014"}</td><td class="mono">${fmtMDY(l.RdDate)}</td>`+
     `<td class="mono">${l.PO}</td><td class="mono">${l.Batch}</td><td>${rt(l.Store)}</td>`+
     `<td class="num">${rt(l.Cases)}</td><td class="num">${l.Pieces??""}</td><td>${rt(l.Buyer)||""}</td></tr>`).join("");
   return `<div class="doc">
