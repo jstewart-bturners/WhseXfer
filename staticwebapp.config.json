@@ -1,0 +1,5 @@
+{
+  "navigationFallback": { "rewrite": "/swa-index.html", "exclude": ["/api/*", "*.css", "*.js"] },
+  "routes": [ { "route": "/api/*", "headers": { "Cache-Control": "no-store" } } ],
+  "platform": { "apiRuntime": "node:20" }
+}

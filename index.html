@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse → Processing</title>
+<style>
+  :root{
+    --ink:#161a20; --slate:#5c6672; --muted:#8a94a1;
+    --line:#e4e8ee; --line-2:#eef1f5; --bg:#f6f7f9; --card:#ffffff;
+    --amber:#b45309; --amber-bg:#fef6e7; --amber-line:#f0d9a8;
+    --green:#15803d; --green-bg:#edf6ef; --green-line:#bfe0c6;
+    --red:#a1341f; --red-bg:#fbeeeb;
+    --blue:#1f5f8b; --blue-bg:#eaf2f9;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,"SF Mono","Cascadia Code",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px 16px 90px;}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+  header.top h1{font-size:18px;margin:0;}
+  header.top .sub{color:var(--muted);font-size:13px;}
+  .env{font-family:var(--mono);font-size:11px;color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-line);border-radius:5px;padding:2px 7px;}
+  .ver{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:3px;}
+
+  .filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+  @media(max-width:820px){.filters{grid-template-columns:1fr 1fr;}}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  select,input[type="text"],input[type="number"]{font-family:inherit;font-size:16px;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:11px 12px;background:#fff;width:100%;min-height:46px;}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin:6px 0 12px;gap:10px;flex-wrap:wrap;}
+  .count{font-size:14px;color:var(--slate);}
+  .count b{color:var(--ink);}
+  button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .btn{font-size:15px;font-weight:600;border-radius:9px;padding:11px 16px;border:1px solid var(--line);background:#fff;color:var(--slate);min-height:46px;}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .btn.ghost{background:#fff;color:var(--slate);}
+  .btn:disabled{opacity:.5;}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  thead th{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--slate);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-2);font-weight:700;background:#fbfcfd;}
+  th.num,td.num{text-align:right;}
+  th.chk,td.chk{text-align:center;width:52px;}
+  tbody td{padding:12px;border-bottom:1px solid var(--line-2);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr.sel{background:#f0f7f2;}
+  tbody tr{cursor:pointer;}
+  input[type="checkbox"]{width:24px;height:24px;accent-color:var(--green);}
+  .vendor{font-weight:600;}
+  .vcode{font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .mono{font-family:var(--mono);font-size:14px;}
+  .chip{font-size:12.5px;font-family:var(--mono);padding:3px 10px;border-radius:20px;border:1px solid #cdd6e2;background:#f3f6fb;color:#3f5573;white-space:nowrap;}
+  .chip.split{border-color:var(--amber-line);background:var(--amber-bg);color:var(--amber);font-weight:600;}
+  .grp{font-size:12.5px;color:var(--slate);}
+  .age{font-family:var(--mono);font-size:13px;}
+  .age.old{color:var(--red);font-weight:700;}
+
+  /* sticky pallet bar */
+  .palletbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+    box-shadow:0 -4px 16px rgba(20,26,32,.06);padding:12px 16px;display:none;align-items:center;gap:14px;z-index:20;}
+  .palletbar.show{display:flex;}
+  .palletbar .info{font-size:15px;color:var(--slate);flex:1;}
+  .palletbar .info b{color:var(--ink);font-size:17px;}
+  .palletbar select{max-width:170px;}
+  .btn-build{font-size:16px;font-weight:700;border-radius:10px;padding:13px 20px;border:1px solid var(--green);background:var(--green);color:#fff;min-height:50px;}
+  .btn-build:disabled{opacity:.4;background:#eef1f5;color:var(--muted);border-color:var(--line);}
+
+  .msg{padding:12px 14px;border-radius:9px;font-size:14px;margin-bottom:12px;display:none;}
+  .msg.show{display:block;}
+  .msg.ok{background:var(--green-bg);border:1px solid var(--green-line);color:#155e33;}
+  .msg.err{background:var(--red-bg);border:1px solid #e3c7c7;color:var(--red);}
+  .center{padding:44px 12px;text-align:center;color:var(--muted);}
+  .loading{font-family:var(--mono);font-size:16px;color:var(--slate);}
+  .loading .dots{display:inline-block;width:2.5em;text-align:left;}
+
+  /* modal (print preview + recall) */
+  .overlay{position:fixed;inset:0;background:rgba(20,26,32,.45);display:none;align-items:flex-start;justify-content:center;z-index:40;padding:20px;overflow:auto;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:12px;max-width:820px;width:100%;padding:0;overflow:hidden;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);}
+  .modal-head h2{font-size:16px;margin:0;}
+  .modal-body{padding:18px;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--line);}
+  .x{border:none;background:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;}
+
+  /* pallet document (screen preview + print) */
+  .doc{font-family:var(--sans);color:#000;}
+  .doc-title{font-size:18px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-align:center;margin:0 0 12px;}
+  .doc-head{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;border-top:2px solid #000;border-bottom:1px solid #000;padding:10px 0;margin-bottom:6px;}
+  .doc-head .k{color:#444;font-size:12px;}
+  .doc-head .v{font-weight:700;font-family:var(--mono);font-size:14px;}
+  .doc table{width:100%;border-collapse:collapse;margin-top:6px;border:none;}
+  .doc th{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#333;text-align:left;border-bottom:1.5px solid #000;padding:5px 6px;background:none;}
+  .doc td{padding:5px 6px;border-bottom:1px solid #ccc;font-size:12px;}
+  .doc td.num,.doc th.num{text-align:right;}
+  .copylabel{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:2px 0 4px;}
+
+  @media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+    .print-copy { page-break-after: always; padding: 18px 24px; }
+    .print-copy:last-child { page-break-after: auto; }
+    .overlay { position: static; background: none; padding: 0; display: block; }
+    .modal { box-shadow: none; max-width: none; }
+    .modal-head, .modal-foot { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Warehouse &rarr; Processing</h1>
+      <div class="sub">Select the RDs on your pallet, then build the manifest.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn ghost" id="recall-open">Recall PL#</button>
+      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.0</div></div>
+    </div>
+  </header>
+
+  <div id="message" class="msg"></div>
+
+  <div class="filters">
+    <div class="field"><label>Buyer Group</label><select id="f-group" disabled><option value="">All groups</option></select></div>
+    <div class="field"><label>Vendor</label><select id="f-vendor" disabled><option value="">All vendors</option></select></div>
+    <div class="field"><label>Store</label><select id="f-store" disabled><option value="">All stores</option></select></div>
+    <div class="field"><label>PO search</label><input type="text" id="f-po" placeholder="Type a PO…" inputmode="numeric"></div>
+  </div>
+  <div class="bar">
+    <span class="count" id="countlbl">Loading&hellip;</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="clearfilters">Clear Filters</button>
+      <button class="btn primary" id="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <div id="list-wrap">
+    <div class="center" id="loading"><span class="loading">Loading<span class="dots" id="dots">.</span></span></div>
+    <table id="tbl" style="display:none">
+      <thead><tr>
+        <th class="chk"><input type="checkbox" id="chk-all" title="Select all"></th>
+        <th>Vendor</th><th>PO</th><th>Batch</th><th>Store</th>
+        <th class="num">Cases</th><th class="num">Age</th><th>Buyer Group</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="center" id="empty" style="display:none">No receipts match these filters.</div>
+  </div>
+</div>
+
+<!-- sticky pallet-building bar -->
+<div class="palletbar" id="palletbar">
+  <div class="info"><b id="selcount">0</b> RDs on pallet &nbsp;&middot;&nbsp; <span id="selcases">0</span> cases</div>
+  <select id="destination"><option value="335">To 335 (Processing)</option></select>
+  <button class="btn ghost" id="clearsel">Clear</button>
+  <button class="btn-build" id="build">Build Pallet Manifest</button>
+</div>
+
+<!-- print-preview modal -->
+<div class="overlay" id="printOverlay">
+  <div class="modal">
+    <div class="modal-head"><h2>Pallet Manifest</h2><button class="x" id="print-close">&times;</button></div>
+    <div class="modal-body"><div id="printArea"></div></div>
+    <div class="modal-foot">
+      <button class="btn" id="print-close2">Close</button>
+      <button class="btn primary" id="print-go">Print (2 copies)</button>
+    </div>
+  </div>
+</div>
+
+<!-- recall modal -->
+<div class="overlay" id="recallOverlay">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head"><h2>Recall a Pallet</h2><button class="x" id="recall-close">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--slate);font-size:14px;margin-top:0;">Move a whole pallet's RDs back to In Warehouse.</p>
+      <div class="field"><label>Freight Log Number (PL#)</label>
+        <input type="number" id="recall-no" placeholder="e.g. 1001" inputmode="numeric"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="recall-close2">Cancel</button>
+      <button class="btn primary" id="recall-go">Recall Pallet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "/api";
+const $ = s => document.querySelector(s);
+let allRows = [], loaded = false, loadInFlight = false;
+const selected = new Map(); // key -> row
+function rowKey(r){ return r.PoNum+"|"+fmtDate(r.ReceiveDate)+"|"+r.SeqNum; }
+function fmtDate(d){ return (d||"").toString().slice(0,10); }
+function rt(s){ return (s==null?"":String(s)).replace(/\s+$/,""); } // rtrim padded fields
+
+let dotsTimer=null;
+function startDots(){ const el=$("#dots"); let n=1; dotsTimer=setInterval(()=>{el.textContent=".".repeat(n);n=n>=4?1:n+1;},350); }
+function stopDots(){ if(dotsTimer){clearInterval(dotsTimer);dotsTimer=null;} }
+function showMsg(kind,text){ const m=$("#message"); m.className="msg show "+kind; m.textContent=text; if(kind==="ok") setTimeout(()=>m.classList.remove("show"),4500); }
+
+async function parseResponse(res){
+  const ct=res.headers.get("content-type")||"";
+  if(ct.includes("application/json")){ const d=await res.json(); if(!res.ok) throw new Error(d.detail||d.error||res.statusText); return d; }
+  const t=await res.text(); if(!res.ok) throw new Error(t.slice(0,140)||res.statusText); throw new Error("Unexpected non-JSON response.");
+}
+
+async function load(){
+  if(loadInFlight) return; loadInFlight=true;
+  $("#loading").style.display="block"; $("#tbl").style.display="none"; $("#empty").style.display="none"; startDots(); $("#refresh").disabled=true;
+  const prev={g:$("#f-group").value,v:$("#f-vendor").value,s:$("#f-store").value};
+  try{
+    const res=await fetch(`${API}/pickList?state=InWarehouse`);
+    const {rows}=await parseResponse(res);
+    allRows=rows||[]; loaded=true;
+    buildFilters();
+    if([...$("#f-group").options].some(o=>o.value===prev.g)) $("#f-group").value=prev.g;
+    if([...$("#f-vendor").options].some(o=>o.value===prev.v)) $("#f-vendor").value=prev.v;
+    if([...$("#f-store").options].some(o=>o.value===prev.s)) $("#f-store").value=prev.s;
+    $("#f-group").disabled=$("#f-vendor").disabled=$("#f-store").disabled=false;
+    applyFilters();
+  }catch(err){ showMsg("err","Couldn't load: "+err.message); }
+  finally{ stopDots(); $("#loading").style.display="none"; $("#refresh").disabled=false; loadInFlight=false; }
+}
+
+const storeNames=new Map();
+function buildFilters(){
+  const groups=new Set(), vendors=new Set(), stores=new Set(); storeNames.clear();
+  allRows.forEach(r=>{
+    (r.BuyerGroups||"").split(",").forEach(g=>{g=g.trim(); if(g) groups.add(g);});
+    vendors.add(rt(r.VendorName)||r.VendorCode||"\u2014");
+    const codes=(r.StoreCodeList||"").split(",").map(s=>s.trim()).filter(Boolean);
+    const names=(r.StoreList||"").split(",").map(s=>s.trim());
+    codes.forEach((c,i)=>{stores.add(c); if(names[i]) storeNames.set(c,names[i]);});
+  });
+  const gsel=$("#f-group"); gsel.innerHTML='<option value="">All groups</option>';
+  [...groups].sort().forEach(g=>gsel.add(new Option(g,g)));
+  const vsel=$("#f-vendor"); vsel.innerHTML='<option value="">All vendors</option>';
+  [...vendors].sort().forEach(v=>vsel.add(new Option(v,v)));
+  const ssel=$("#f-store"); ssel.innerHTML='<option value="">All stores</option>';
+  [...stores].sort().forEach(c=>ssel.add(new Option(storeNames.get(c)||c,c)));
+}
+
+function applyFilters(){
+  const g=$("#f-group").value,v=$("#f-vendor").value,s=$("#f-store").value,po=$("#f-po").value.trim();
+  const rows=allRows.filter(r=>{
+    if(g && !(r.BuyerGroups||"").split(",").map(x=>x.trim()).includes(g)) return false;
+    if(v && (rt(r.VendorName)||r.VendorCode||"\u2014")!==v) return false;
+    if(s && !(r.StoreCodeList||"").split(",").map(x=>x.trim()).includes(s)) return false;
+    if(po && !r.PoNum.includes(po)) return false;
+    return true;
+  });
+  renderRows(rows);
+}
+let currentRows=[];
+function renderRows(rows){
+  currentRows=rows;
+  $("#countlbl").innerHTML=`<b>${rows.length}</b> receipts`;
+  const tb=$("#rows"); tb.innerHTML="";
+  if(!rows.length){ $("#tbl").style.display="none"; $("#empty").style.display="block"; syncBar(); return; }
+  $("#empty").style.display="none"; $("#tbl").style.display="table";
+  rows.forEach(r=>{
+    const key=rowKey(r), on=selected.has(key), split=r.StoreLabel==="SPLIT";
+    const storeChip=split?`<span class="chip split" title="${r.StoreList||''}">SPLIT - ${r.StoreCount}</span>`:`<span class="chip">${rt(r.StoreLabel)}</span>`;
+    const tr=document.createElement("tr"); if(on) tr.classList.add("sel");
+    tr.innerHTML=
+      `<td class="chk"><input type="checkbox" ${on?"checked":""}></td>`+
+      `<td><div class="vendor">${rt(r.VendorName)||"\u2014"}</div><div class="vcode">${r.VendorCode||""}</div></td>`+
+      `<td class="mono">${r.PoNum}</td>`+
+      `<td class="mono">${r.SeqNum}</td>`+
+      `<td>${storeChip}</td>`+
+      `<td class="num">${rt(r.CasesNote)}</td>`+
+      `<td class="num"><span class="age ${r.AgeDays>5?"old":""}">${r.AgeDays}d</span></td>`+
+      `<td class="grp">${r.BuyerGroups||"\u2014"}</td>`;
+    const toggle=()=>{
+      if(selected.has(key)){ selected.delete(key); tr.classList.remove("sel"); tr.querySelector("input").checked=false; }
+      else { selected.set(key,r); tr.classList.add("sel"); tr.querySelector("input").checked=true; }
+      syncBar();
+    };
+    tr.addEventListener("click",e=>{ if(e.target.tagName!=="INPUT") toggle(); });
+    tr.querySelector("input").addEventListener("change",toggle);
+    tb.appendChild(tr);
+  });
+  syncBar();
+}
+function syncBar(){
+  const n=selected.size;
+  $("#palletbar").classList.toggle("show", n>0);
+  $("#selcount").textContent=n;
+  let cases=0; selected.forEach(r=>{ const c=parseInt(rt(r.CasesNote)); if(!isNaN(c)) cases+=c; });
+  $("#selcases").textContent=cases;
+  $("#build").disabled=n===0;
+  const vis=currentRows;
+  const allsel=vis.length>0 && vis.every(r=>selected.has(rowKey(r)));
+  $("#chk-all").checked=allsel; $("#chk-all").indeterminate=n>0 && !allsel;
+}
+
+// build manifest: send all store-RDs behind each selected receipt
+async function buildManifest(){
+  const receipts=[...selected.values()];
+  const rds=[];
+  receipts.forEach(r=>{
+    const codes=(r.StoreCodeList||"").split(",").map(s=>s.trim()).filter(Boolean);
+    codes.forEach(loc=>rds.push({poNum:r.PoNum,receiveDate:fmtDate(r.ReceiveDate),seqNum:r.SeqNum,locateCode:loc}));
+  });
+  $("#build").disabled=true; $("#build").textContent="Building\u2026";
+  try{
+    const res=await fetch(`${API}/createManifest`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({destination:$("#destination").value,createdBy:"WHSEAPP",rds})});
+    const {header,lines}=await parseResponse(res);
+    renderDocument(header,lines);
+    $("#printOverlay").classList.add("show");
+    selected.clear();
+    showMsg("ok",`${header.ManifestLabel} created \u2014 ${header.RdCount} RDs moved to processing.`);
+    load();
+  }catch(err){ showMsg("err","Couldn't build manifest: "+err.message); $("#build").disabled=false; }
+  finally{ $("#build").textContent="Build Pallet Manifest"; }
+}
+
+function docHtml(header,lines){
+  const rowsHtml=lines.map(l=>
+    `<tr><td>${rt(l.Vendor)||"\u2014"}</td><td class="mono">${fmtDate(l.RdDate)}</td>`+
+    `<td class="mono">${l.PO}</td><td class="mono">${l.Batch}</td><td>${rt(l.Store)}</td>`+
+    `<td class="num">${rt(l.Cases)}</td><td class="num">${l.Pieces??""}</td><td>${rt(l.Buyer)||""}</td></tr>`).join("");
+  return `<div class="doc">
+    <div class="doc-title">Freight Log Delivery</div>
+    <div class="doc-head">
+      <div><span class="k">Freight Log Number:</span> <span class="v">${header.ManifestLabel}</span></div>
+      <div><span class="k">Store:</span> <span class="v">${rt(header.StoreSuffix)}</span></div>
+      <div><span class="k">Buyer Group:</span> <span class="v">${rt(header.BuyerGroup)}</span></div>
+      <div><span class="k">Date:</span> <span class="v">${fmtDate(header.CreatedUtc)}</span></div>
+    </div>
+    <table><thead><tr>
+      <th>Vendor</th><th>RD Date</th><th>PO</th><th>Batch</th><th>Store</th>
+      <th class="num">Cases</th><th class="num">Pieces</th><th>Buyer</th>
+    </tr></thead><tbody>${rowsHtml}</tbody></table>
+  </div>`;
+}
+function renderDocument(header,lines){
+  const one=docHtml(header,lines);
+  // two copies for one print job
+  $("#printArea").innerHTML=
+    `<div class="print-copy"><div class="copylabel">Pallet copy</div>${one}</div>`+
+    `<div class="print-copy"><div class="copylabel">Office copy</div>${one}</div>`;
+}
+
+// recall
+async function recall(){
+  const no=parseInt($("#recall-no").value,10);
+  if(!no){ showMsg("err","Enter a PL number."); return; }
+  $("#recall-go").disabled=true;
+  try{
+    const res=await fetch(`${API}/recallManifest`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({manifestNo:no,recalledBy:"WHSEAPP"})});
+    const out=await parseResponse(res);
+    showMsg("ok",`${out.ManifestLabel||('PL'+no)} recalled \u2014 RDs back in warehouse.`);
+    $("#recallOverlay").classList.remove("show"); $("#recall-no").value=""; load();
+  }catch(err){ showMsg("err","Couldn't recall: "+err.message); }
+  finally{ $("#recall-go").disabled=false; }
+}
+
+// wiring
+["f-group","f-vendor","f-store"].forEach(id=>$("#"+id).addEventListener("change",applyFilters));
+$("#f-po").addEventListener("input",applyFilters);
+$("#refresh").addEventListener("click",load);
+$("#clearfilters").addEventListener("click",()=>{ $("#f-group").value="";$("#f-vendor").value="";$("#f-store").value="";$("#f-po").value=""; applyFilters(); });
+$("#chk-all").addEventListener("change",e=>{ const on=e.target.checked; currentRows.forEach(r=>{ if(on) selected.set(rowKey(r),r); else selected.delete(rowKey(r)); }); applyFilters(); });
+$("#clearsel").addEventListener("click",()=>{ selected.clear(); applyFilters(); });
+$("#build").addEventListener("click",buildManifest);
+$("#print-go").addEventListener("click",()=>window.print());
+$("#print-close").addEventListener("click",()=>$("#printOverlay").classList.remove("show"));
+$("#print-close2").addEventListener("click",()=>$("#printOverlay").classList.remove("show"));
+$("#recall-open").addEventListener("click",()=>$("#recallOverlay").classList.add("show"));
+$("#recall-close").addEventListener("click",()=>$("#recallOverlay").classList.remove("show"));
+$("#recall-close2").addEventListener("click",()=>$("#recallOverlay").classList.remove("show"));
+$("#recall-go").addEventListener("click",recall);
+
+load();
+</script>
+</body>
+</html>
