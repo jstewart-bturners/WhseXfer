@@ -33,8 +33,12 @@
   .bar{display:flex;justify-content:space-between;align-items:center;margin:6px 0 12px;gap:10px;flex-wrap:wrap;}
   .count{font-size:14px;color:var(--slate);}
   .count b{color:var(--ink);}
-  .toggle{font-size:13px;color:var(--slate);display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
-  .toggle input{width:18px;height:18px;accent-color:var(--ink);margin:0;}
+  .switch{font-size:13px;color:var(--slate);display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+  .switch input{position:absolute;opacity:0;width:0;height:0;}
+  .switch .track{position:relative;width:40px;height:23px;border-radius:23px;background:#cfd5dd;transition:background .15s;flex:none;}
+  .switch .track::after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s;}
+  .switch input:checked + .track{background:var(--green);}
+  .switch input:checked + .track::after{transform:translateX(17px);}
   button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .btn{font-size:15px;font-weight:600;border-radius:9px;padding:11px 16px;border:1px solid var(--line);background:#fff;color:var(--slate);min-height:46px;}
   .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
@@ -93,7 +97,7 @@
   .doc-head{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;border-top:2px solid #000;border-bottom:1px solid #000;padding:10px 0;margin-bottom:6px;}
   .doc-head .k{color:#444;font-size:12px;}
   .doc-head .v{font-weight:700;font-family:var(--mono);font-size:14px;}
-  .doc table{width:100%;border-collapse:collapse;margin-top:6px;border:none;}
+  .doc table{width:100%;border-collapse:collapse;margin-top:20px;border:none;}
   .doc th{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#333;text-align:left;border-bottom:1.5px solid #000;padding:5px 6px;background:none;}
   .doc td{padding:5px 6px;border-bottom:1px solid #ccc;font-size:12px;}
   .doc td.num,.doc th.num{text-align:right;}
@@ -120,7 +124,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <button class="btn ghost" id="recall-open">Recall PL#</button>
-      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.2</div></div>
+      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.3</div></div>
     </div>
   </header>
 
@@ -135,8 +139,8 @@
   <div class="bar">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <span class="count" id="countlbl">Loading&hellip;</span>
-      <label class="toggle"><input type="checkbox" id="t-recent" checked> Last 4 weeks</label>
-      <label class="toggle"><input type="checkbox" id="t-all"> Show all states</label>
+      <label class="switch"><input type="checkbox" id="t-recent" checked><span class="track"></span> Last 4 weeks</label>
+      <label class="switch"><input type="checkbox" id="t-all"><span class="track"></span> Show all states</label>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn" id="clearfilters">Clear Filters</button>
@@ -269,6 +273,9 @@ function buildFilters(){
   [...vendors].sort().forEach(v=>vsel.add(new Option(v,v)));
   const ssel=$("#f-store"); ssel.innerHTML='<option value="">All stores</option>';
   [...stores].sort().forEach(c=>ssel.add(new Option(storeNames.get(c)||c,c)));
+  // destination dropdown: 335 (processing) default, plus direct-to-store options
+  const dsel=$("#destination"); dsel.innerHTML='<option value="335">To 335 (Processing)</option>';
+  [...stores].sort().forEach(c=>dsel.add(new Option("Direct to "+(storeNames.get(c)||c)+" ("+c+")", c)));
 }
 
 function applyFilters(){
@@ -346,7 +353,7 @@ function renderReview(){
     row.style.cssText="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line-2);";
     row.innerHTML=
       `<div style="flex:1;min-width:0;"><div style="font-weight:600;">${rt(r.VendorName)||"\u2014"}</div>`+
-      `<div class="vcode">PO ${r.PoNum} · batch ${r.SeqNum} · ${store} · ${fmtMDY(r.ReceiveDate)}</div></div>`+
+      `<div class="vcode">${fmtMDY(r.ReceiveDate)} · PO ${r.PoNum} · batch ${r.SeqNum} · ${store}</div></div>`+
       `<div class="grp" style="font-size:12px;">${r.BuyerGroups||""}</div>`+
       `<button class="x" style="font-size:20px;" title="Remove">&times;</button>`;
     row.querySelector("button").addEventListener("click",()=>{
