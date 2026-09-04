@@ -124,7 +124,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <button class="btn ghost" id="recall-open">Recall PL#</button>
-      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.3</div></div>
+      <div style="text-align:right;"><span class="env">TEST</span><div class="ver">v1.0.4</div></div>
     </div>
   </header>
 
@@ -243,8 +243,13 @@ async function load(){
   $("#loading").style.display="block"; $("#tbl").style.display="none"; $("#empty").style.display="none"; startDots(); $("#refresh").disabled=true;
   const prev={g:$("#f-group").value,v:$("#f-vendor").value,s:$("#f-store").value};
   try{
-    const stateParam = $("#t-all").checked ? "" : "state=InWarehouse";
-    const res=await fetch(`${API}/pickList?${stateParam}`);
+    const params = [];
+    if(!$("#t-all").checked) params.push("state=InWarehouse");
+    if($("#t-recent").checked){
+      const d=new Date(); d.setDate(d.getDate()-28);
+      params.push("receivedSince="+d.toISOString().slice(0,10));
+    }
+    const res=await fetch(`${API}/pickList?${params.join("&")}`);
     const {rows}=await parseResponse(res);
     allRows=rows||[]; loaded=true;
     buildFilters();
@@ -280,10 +285,7 @@ function buildFilters(){
 
 function applyFilters(){
   const g=$("#f-group").value,v=$("#f-vendor").value,s=$("#f-store").value,po=$("#f-po").value.trim();
-  const recent=$("#t-recent").checked;
-  const cutoff = recent ? (()=>{ const d=new Date(); d.setDate(d.getDate()-28); return d.toISOString().slice(0,10); })() : null;
   let rows=allRows.filter(r=>{
-    if(cutoff && fmtDate(r.ReceiveDate) < cutoff) return false;
     if(g && !(r.BuyerGroups||"").split(",").map(x=>x.trim()).includes(g)) return false;
     if(v && (rt(r.VendorName)||r.VendorCode||"\u2014")!==v) return false;
     if(s && !(r.StoreCodeList||"").split(",").map(x=>x.trim()).includes(s)) return false;
@@ -437,8 +439,14 @@ async function recall(){
 ["f-group","f-vendor","f-store"].forEach(id=>$("#"+id).addEventListener("change",applyFilters));
 $("#f-po").addEventListener("input",applyFilters);
 $("#refresh").addEventListener("click",load);
-$("#clearfilters").addEventListener("click",()=>{ $("#f-group").value="";$("#f-vendor").value="";$("#f-store").value="";$("#f-po").value=""; $("#t-recent").checked=true; applyFilters(); });
-$("#t-recent").addEventListener("change",applyFilters);
+$("#clearfilters").addEventListener("click",()=>{
+  $("#f-group").value="";$("#f-vendor").value="";$("#f-store").value="";$("#f-po").value="";
+  const wasRecent=$("#t-recent").checked;
+  $("#t-recent").checked=true;
+  if(!wasRecent) load();        // toggling recent back on narrows the server query -> reload
+  else applyFilters();
+});
+$("#t-recent").addEventListener("change",load);
 $("#t-all").addEventListener("change",load);
 $("#chk-all").addEventListener("change",e=>{ const on=e.target.checked; currentRows.forEach(r=>{ if(on) selected.set(rowKey(r),r); else selected.delete(rowKey(r)); }); applyFilters(); });
 $("#clearsel").addEventListener("click",()=>{ selected.clear(); applyFilters(); });
